@@ -349,6 +349,14 @@ export default function PlanPage() {
                                 {trip.name || 'Untitled Trip'}
                               </p>
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {trip.updated_at && (
+                                  <span className="text-[11px] text-gray-300">
+                                    Saved {new Date(trip.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(trip.updated_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                  </span>
+                                )}
+                                {trip.updated_at && dateRange && (
+                                  <span className="text-xs text-gray-200">•</span>
+                                )}
                                 {dateRange && (
                                   <span className="text-xs text-gray-400">{dateRange}</span>
                                 )}
