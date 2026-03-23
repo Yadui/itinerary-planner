@@ -38,7 +38,7 @@ export function useTrip(tripId, accessToken) {
 
   // ─── Load ───
   const loadTrip = useCallback(async () => {
-    if (!tripId) return;
+    if (!tripId || !accessToken) return;
     setLoading(true);
     setError(null);
 

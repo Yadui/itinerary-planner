@@ -11,9 +11,15 @@ export default function TripPage() {
   const { trip, activities, itinerary, loading, error, isDirty, saving, saveStatus, saveTrip, updateItinerary } = useTrip(id, auth.accessToken);
   const [showShare, setShowShare] = useState(false);
 
-  if (loading) return (
+  if (auth.loading || (auth.isAuthenticated && loading)) return (
     <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
       <p className="text-gray-400">Loading trip...</p>
+    </div>
+  );
+
+  if (!auth.isAuthenticated) return (
+    <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
+      <p className="text-gray-400">Sign in to view this trip</p>
     </div>
   );
 
