@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
 
+const EMAIL_DOMAIN = '@trip.io';
+function displayName(email) {
+  if (!email) return '?';
+  if (email.endsWith(EMAIL_DOMAIN)) return email.replace(EMAIL_DOMAIN, '');
+  return email;
+}
+
 export default function ShareDialog({ tripId, accessToken, onClose }) {
   const [loading, setLoading] = useState(true);
   const [share, setShare] = useState(null);
@@ -195,9 +202,9 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
                       <div key={c.id} className="flex items-center justify-between py-1.5">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-7 h-7 rounded-full bg-[#007AFF]/10 text-[#007AFF] flex items-center justify-center text-xs font-medium flex-shrink-0">
-                            {(c.email?.[0] || '?').toUpperCase()}
+                            {displayName(c.email)[0]?.toUpperCase() || '?'}
                           </div>
-                          <span className="text-sm text-gray-700 truncate">{c.email}</span>
+                          <span className="text-sm text-gray-700 truncate">{displayName(c.email)}</span>
                           <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 flex-shrink-0">
                             {c.role}
                           </span>

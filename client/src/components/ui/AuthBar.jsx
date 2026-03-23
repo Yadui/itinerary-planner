@@ -1,7 +1,20 @@
 import { useState } from 'react';
 
+const EMAIL_DOMAIN = '@trip.io';
+
+function toEmail(input) {
+  if (input.includes('@')) return input;
+  return input.toLowerCase().trim() + EMAIL_DOMAIN;
+}
+
+function displayName(email) {
+  if (!email) return '';
+  if (email.endsWith(EMAIL_DOMAIN)) return email.replace(EMAIL_DOMAIN, '');
+  return email;
+}
+
 export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState(null);
@@ -12,7 +25,7 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
   if (user) {
     return (
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-500 truncate max-w-[160px]">{user.email}</span>
+        <span className="text-gray-500 truncate max-w-[160px]">{displayName(user.email)}</span>
         <button
           onClick={onSignOut}
           className="text-gray-400 hover:text-gray-600"
@@ -25,9 +38,10 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!username || !password) return;
     setSubmitting(true);
     setError(null);
+    const email = toEmail(username);
     try {
       if (isSignUp) {
         await onSignUp(email, password);
@@ -44,11 +58,11 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
       <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="email"
-        className="px-2 py-1 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] w-36"
+        type="text"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="username"
+        className="px-2 py-1 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] w-28"
       />
       <input
         type="password"
