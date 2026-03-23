@@ -23,26 +23,39 @@ export async function getTravelTime(origin, destination, mode = 'walking') {
   url.searchParams.set('mode', mode); // walking, driving, transit, bicycling
   url.searchParams.set('key', GOOGLE_KEY);
 
-  const res = await fetch(url.toString());
-  const data = await res.json();
+  // Retry up to 2 times on network failures
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) });
+      const data = await res.json();
 
-  if (data.status !== 'OK' || !data.routes?.length) {
-    // Fallback: estimate ~5km/h walking, ~30km/h driving
-    const distKm = haversine(origin, destination);
-    const speedKmh = mode === 'walking' ? 5 : mode === 'transit' ? 25 : 30;
-    const fallback = { duration_minutes: Math.ceil((distKm / speedKmh) * 60), distance_meters: Math.round(distKm * 1000), estimated: true };
-    travelCache.set(key, fallback);
-    return fallback;
+      if (data.status !== 'OK' || !data.routes?.length) {
+        break; // API responded but no route — use fallback
+      }
+
+      const leg = data.routes[0].legs[0];
+      const result = {
+        duration_minutes: Math.ceil(leg.duration.value / 60),
+        distance_meters: leg.distance.value,
+        estimated: false,
+      };
+      travelCache.set(key, result);
+      return result;
+    } catch (err) {
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      // All retries failed — fall through to haversine
+    }
   }
 
-  const leg = data.routes[0].legs[0];
-  const result = {
-    duration_minutes: Math.ceil(leg.duration.value / 60),
-    distance_meters: leg.distance.value,
-    estimated: false,
-  };
-  travelCache.set(key, result);
-  return result;
+  // Fallback: estimate ~5km/h walking, ~30km/h driving
+  const distKm = haversine(origin, destination);
+  const speedKmh = mode === 'walking' ? 5 : mode === 'transit' ? 25 : 30;
+  const fallback = { duration_minutes: Math.ceil((distKm / speedKmh) * 60), distance_meters: Math.round(distKm * 1000), estimated: true };
+  travelCache.set(key, fallback);
+  return fallback;
 }
 
 /**
