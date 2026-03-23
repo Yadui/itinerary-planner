@@ -164,7 +164,9 @@ router.put('/:id', requireAuth, async (req, res) => {
 // ─── Load Trip (Full Reconstruction) ───
 // GET /api/trips/:id
 router.get('/:id', optionalAuth, async (req, res) => {
-  const sb = req.accessToken ? getSupabaseForUser(req.accessToken) : getSupabase();
+  // Use service-role client to bypass RLS for trip lookup
+  // Access control is handled in code below
+  const sb = getSupabase();
   const tripId = req.params.id;
 
   try {
