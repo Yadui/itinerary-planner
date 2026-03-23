@@ -120,5 +120,88 @@ export async function generateSchedule(trip, activities, travelTimes) {
   const parsed = JSON.parse(jsonMatch[1]);
   const validated = ScheduleResponseSchema.parse(parsed);
 
-  return { schedule: validated, raw };
+  // Post-process: enforce city-date + transport time constraints
+  const enforced = enforceConstraints(validated, trip, activities);
+
+  return { schedule: enforced, raw };
+}
+
+/**
+ * Post-process AI schedule to enforce hard constraints:
+ * 1. Activities only on days when user is in that city
+ * 2. No activities before arrival time (+ buffer)
+ * 3. No activities after departure time (- buffer)
+ */
+function enforceConstraints(schedule, trip, activities) {
+  if (!trip.cities?.length) return schedule;
+
+  // Build a map: date → { city, earliestStart, latestEnd }
+  const dateConstraints = new Map();
+  for (const city of trip.cities) {
+    if (!city.arrival || !city.departure) continue;
+    const start = new Date(city.arrival + 'T00:00:00');
+    const end = new Date(city.departure + 'T00:00:00');
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().slice(0, 10);
+      const constraint = { city: city.name, earliestStart: '09:00', latestEnd: '21:00' };
+
+      // Arrival day: if arrivalTime is late, push start to next reasonable time
+      if (dateStr === city.arrival && city.arrivalTime) {
+        const [h, m] = city.arrivalTime.split(':').map(Number);
+        const arrivalMinutes = h * 60 + m;
+        if (arrivalMinutes >= 22 * 60) {
+          // Arrived at 10pm+ → no activities this day
+          constraint.earliestStart = '23:59';
+        } else if (arrivalMinutes >= 12 * 60) {
+          // Arrived afternoon → start 1.5h after
+          const startMin = arrivalMinutes + 90;
+          constraint.earliestStart = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
+        } else {
+          // Morning arrival → start 1h after
+          const startMin = arrivalMinutes + 60;
+          constraint.earliestStart = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
+        }
+      }
+
+      // Departure day: cut off 1h before departure
+      if (dateStr === city.departure && city.departureTime) {
+        const [h, m] = city.departureTime.split(':').map(Number);
+        const cutoffMin = Math.max(0, h * 60 + m - 60);
+        constraint.latestEnd = `${String(Math.floor(cutoffMin / 60)).padStart(2, '0')}:${String(cutoffMin % 60).padStart(2, '0')}`;
+      }
+
+      dateConstraints.set(dateStr, constraint);
+    }
+  }
+
+  // Build activity city map
+  const activityCity = new Map();
+  for (const a of activities) {
+    if (a.city) activityCity.set(a.place_id, a.city);
+  }
+
+  // Enforce
+  for (const day of schedule.days) {
+    const constraint = dateConstraints.get(day.date);
+    if (!constraint) continue;
+
+    // Set city if missing
+    if (!day.city) day.city = constraint.city;
+
+    // Remove activities from wrong city
+    day.items = day.items.filter((item) => {
+      const itemCity = activityCity.get(item.place_id);
+      if (itemCity && itemCity !== constraint.city) return false;
+      return true;
+    });
+
+    // Remove activities outside time bounds
+    day.items = day.items.filter((item) => {
+      if (item.start_time < constraint.earliestStart) return false;
+      if (item.end_time > constraint.latestEnd) return false;
+      return true;
+    });
+  }
+
+  return schedule;
 }
