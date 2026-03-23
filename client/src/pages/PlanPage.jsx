@@ -82,6 +82,7 @@ export default function PlanPage() {
           city: a.city || config?.cities?.find((c) =>
             data.itinerary?.days?.find((d) => d.city === c.name && d.items?.some((it) => it.place_id === a.place_id))
           )?.name || config?.cities?.[0]?.name,
+          source: a.source || a.metadata?.source || null,
         }));
         setSelectedActivities(restored);
       }
@@ -219,6 +220,7 @@ export default function PlanPage() {
             rating: a.rating,
             types: a.types,
             address: a.address,
+            source: a.source || null,
           })),
           itinerary: itinerary ? {
             days: itinerary.days.map((day) => ({

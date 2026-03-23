@@ -74,6 +74,7 @@ export default function TripPage() {
     address: a.address || a.metadata?.address || '',
     photo: a.photo || a.metadata?.photo,
     city: a.city,
+    source: a.source || a.metadata?.source || null,
   }));
 
   function toggleActivity(activity) {
@@ -94,6 +95,7 @@ export default function TripPage() {
       types: a.types,
       address: a.address,
       city: a.city,
+      source: a.source || null,
     }));
     if (updateActivities) updateActivities(storageFormat);
   }

@@ -110,6 +110,7 @@ router.put('/:id', requireAuth, async (req, res) => {
             address: a.address,
             photo: a.photo,
             opening_hours: a.opening_hours,
+            source: a.source || null,
           },
         }));
         const { error } = await sb.from('trip_activities').insert(rows);
@@ -246,6 +247,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       types: a.metadata?.types ?? [],
       address: a.metadata?.address ?? null,
       photo: a.metadata?.photo ?? null,
+      source: a.metadata?.source ?? null,
     }));
 
     res.json({
