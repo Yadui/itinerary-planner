@@ -86,12 +86,12 @@ export default function PlanPage() {
         setSelectedActivities(restored);
       }
 
-      // If itinerary exists, go straight to itinerary view
+      // Load itinerary if exists, but always open to activities page
       if (data.itinerary?.days?.length) {
         setItinerary(data.itinerary);
-        setStep(STEPS.ITINERARY);
         setIsDirty(false);
-      } else if (data.activities?.length) {
+      }
+      if (data.activities?.length || data.itinerary?.days?.length) {
         setStep(STEPS.ACTIVITIES);
       } else {
         setStep(STEPS.FORM);
