@@ -333,7 +333,7 @@ export default function PlanPage() {
         </header>
       )}
 
-      <main className={`mx-auto px-4 ${step === STEPS.ACTIVITIES ? 'max-w-6xl' : 'max-w-3xl'}`}>
+      <main className={`mx-auto px-4 pb-24 ${step === STEPS.ACTIVITIES ? 'max-w-6xl' : 'max-w-3xl'}`}>
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
         )}
@@ -451,6 +451,41 @@ export default function PlanPage() {
           </>
         )}
       </main>
+
+      {/* Floating bottom step tabs */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30">
+        <div className="flex items-center bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200/60 p-1.5 gap-1">
+          {[
+            { key: STEPS.FORM, label: 'Trip Details', icon: '📋', num: 1 },
+            { key: STEPS.ACTIVITIES, label: 'Activities', icon: '📍', num: 2 },
+            { key: STEPS.ITINERARY, label: 'Itinerary', icon: '📅', num: 3 },
+          ].map((tab) => {
+            const isActive = step === tab.key;
+            const isReachable =
+              tab.key === STEPS.FORM ||
+              (tab.key === STEPS.ACTIVITIES && tripConfig) ||
+              (tab.key === STEPS.ITINERARY && itinerary);
+            return (
+              <button
+                key={tab.key}
+                onClick={() => isReachable && setStep(tab.key)}
+                disabled={!isReachable}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-[#007AFF] text-white shadow-sm'
+                    : isReachable
+                      ? 'text-gray-600 hover:bg-gray-100'
+                      : 'text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                <span className="text-xs">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.num}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Directions map modal */}
       {showDirections && itinerary && (
