@@ -38,6 +38,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
   const [priceFilter, setPriceFilter] = useState(-1);
   const [cityFilter, setCityFilter] = useState('all');
   const [showSelected, setShowSelected] = useState(false);
+  const [showInstagram, setShowInstagram] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Instagram import
@@ -139,6 +140,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
       if (categoryFilter !== 'all' && !p.types?.some((t) => t.includes(categoryFilter))) return false;
       if (ratingFilter > 0 && (p.rating || 0) < ratingFilter) return false;
       if (priceFilter >= 0 && p.priceLevel != null && p.priceLevel !== priceFilter) return false;
+      if (showInstagram && p.source !== 'instagram') return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const nameMatch = p.name?.toLowerCase().includes(q);
@@ -152,7 +154,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
     const pinned = list.filter((p) => pinnedIds.has(p.id));
     const rest = list.filter((p) => !pinnedIds.has(p.id));
     return [...pinned, ...rest];
-  }, [places, categoryFilter, ratingFilter, priceFilter, cityFilter, showSelected, selectedIds, searchQuery, pinnedIds]);
+  }, [places, categoryFilter, ratingFilter, priceFilter, cityFilter, showSelected, showInstagram, selectedIds, searchQuery, pinnedIds]);
 
   const cityNames = tripConfig.cities.map((c) => c.name);
 
@@ -546,6 +548,20 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           >
             Selected only
           </button>
+
+          {/* Instagram filter */}
+          {places.some((p) => p.source === 'instagram') && (
+            <button
+              onClick={() => setShowInstagram(!showInstagram)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                showInstagram
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              📷 IG Reels
+            </button>
+          )}
 
           {/* Result count */}
           <span className="text-xs text-gray-400 ml-auto">{filtered.length} results</span>
