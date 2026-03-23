@@ -90,6 +90,23 @@ export function useTrip(tripId, accessToken) {
     markDirty();
   }, [markDirty]);
 
+  // ─── Update trip config (cities, dates, transport) ───
+  const updateTripConfig = useCallback((newConfig) => {
+    setTrip((prev) => {
+      if (!prev) return prev;
+      const cities = newConfig.cities || [];
+      const name = cities.map((c) => c.name).filter(Boolean).join(' → ') || prev.name;
+      return {
+        ...prev,
+        name,
+        start_date: cities[0]?.arrival || prev.start_date,
+        end_date: cities[cities.length - 1]?.departure || prev.end_date,
+        config: newConfig,
+      };
+    });
+    markDirty();
+  }, [markDirty]);
+
   // ─── Save with conflict retry ───
   const saveTrip = useCallback(async (retryCount = 0) => {
     if (!tripId || !accessToken || saving) return;
@@ -180,6 +197,7 @@ export function useTrip(tripId, accessToken) {
     isDirty,
     saveStatus,
     updateItinerary,
+    updateTripConfig,
     saveTrip,
     createTrip,
     setTrip,

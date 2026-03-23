@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTrip } from '../hooks/useTrip';
 import ItineraryView from '../components/schedule/ItineraryView';
+import TripForm from '../components/wizard/TripForm';
 import ShareDialog from '../components/ui/ShareDialog';
 
 const EMAIL_DOMAIN = '@trip.io';
@@ -60,8 +61,9 @@ function InlineLogin({ onSignIn }) {
 export default function TripPage() {
   const { id } = useParams();
   const auth = useAuth();
-  const { trip, activities, itinerary, loading, error, isDirty, saving, saveStatus, saveTrip, updateItinerary } = useTrip(id, auth.accessToken);
+  const { trip, activities, itinerary, loading, error, isDirty, saving, saveStatus, saveTrip, updateItinerary, updateTripConfig } = useTrip(id, auth.accessToken);
   const [showShare, setShowShare] = useState(false);
+  const [showEditDetails, setShowEditDetails] = useState(false);
 
   if (auth.loading || (auth.isAuthenticated && loading)) return (
     <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
@@ -120,6 +122,14 @@ export default function TripPage() {
             {error && <span className="text-xs text-red-500 max-w-[150px] truncate" title={error}>{error}</span>}
             {canEdit && (
               <button
+                onClick={() => setShowEditDetails(true)}
+                className="px-3 py-2 border border-gray-200 text-gray-600 font-medium rounded-xl text-sm hover:bg-gray-50"
+              >
+                Edit Details
+              </button>
+            )}
+            {canEdit && (
+              <button
                 onClick={() => setShowShare(true)}
                 className="px-3 py-2 border border-gray-200 text-gray-600 font-medium rounded-xl text-sm hover:bg-gray-50"
               >
@@ -156,6 +166,32 @@ export default function TripPage() {
           accessToken={auth.accessToken}
           onClose={() => setShowShare(false)}
         />
+      )}
+
+      {showEditDetails && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowEditDetails(false)}>
+          <div className="bg-[#f5f5f7] rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 bg-white rounded-t-2xl border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+              <h2 className="text-lg font-semibold text-gray-900">Edit Trip Details</h2>
+              <button
+                onClick={() => setShowEditDetails(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4">
+              <TripForm
+                initialValues={trip.config}
+                onSubmit={(config) => {
+                  updateTripConfig(config);
+                  setShowEditDetails(false);
+                }}
+                submitLabel="Update Details"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

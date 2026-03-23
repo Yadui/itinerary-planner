@@ -60,7 +60,7 @@ function StepShell({ title, subtitle, onBack, children, progress }) {
   );
 }
 
-export default function TripForm({ onSubmit, initialValues }) {
+export default function TripForm({ onSubmit, initialValues, submitLabel }) {
   const emptyCity = { name: '', stay: '', arrival: '', departure: '', cityPlaceId: null, stayPlaceId: null, stayLocation: null };
 
   const [wizardStep, setWizardStep] = useState(0);
@@ -213,7 +213,7 @@ export default function TripForm({ onSubmit, initialValues }) {
           disabled={!canContinue}
           className="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-2xl hover:opacity-90 disabled:opacity-30 transition-opacity text-base"
         >
-          Continue
+          {submitLabel || 'Continue'}
         </button>
       </StepShell>
     );
@@ -311,7 +311,7 @@ export default function TripForm({ onSubmit, initialValues }) {
           disabled={!canContinue}
           className="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-2xl hover:opacity-90 disabled:opacity-30 transition-opacity text-base"
         >
-          Continue
+          {submitLabel || 'Continue'}
         </button>
       </StepShell>
     );
@@ -447,7 +447,7 @@ export default function TripForm({ onSubmit, initialValues }) {
           disabled={!canContinue}
           className="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-2xl hover:opacity-90 disabled:opacity-30 transition-opacity text-base"
         >
-          Continue
+          {submitLabel || 'Continue'}
         </button>
       </StepShell>
     );
@@ -483,7 +483,7 @@ export default function TripForm({ onSubmit, initialValues }) {
           disabled={!canContinue}
           className="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-2xl hover:opacity-90 disabled:opacity-30 transition-opacity text-base"
         >
-          Continue
+          {submitLabel || 'Continue'}
         </button>
       </StepShell>
     );
