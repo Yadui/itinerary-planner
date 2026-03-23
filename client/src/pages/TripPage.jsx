@@ -5,6 +5,58 @@ import { useTrip } from '../hooks/useTrip';
 import ItineraryView from '../components/schedule/ItineraryView';
 import ShareDialog from '../components/ui/ShareDialog';
 
+const EMAIL_DOMAIN = '@trip.io';
+
+function InlineLogin({ onSignIn }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!username || !password) return;
+    setSubmitting(true);
+    setError(null);
+    const email = username.includes('@') ? username : username.toLowerCase().trim() + EMAIL_DOMAIN;
+    try {
+      await onSignIn(email, password);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <input
+        type="text"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Username"
+        autoFocus
+        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
+      />
+      <button
+        type="submit"
+        disabled={submitting || !username || !password}
+        className="w-full py-2.5 bg-[#007AFF] text-white font-semibold rounded-xl text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
+      >
+        {submitting ? 'Signing in…' : 'Sign in'}
+      </button>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </form>
+  );
+}
+
 export default function TripPage() {
   const { id } = useParams();
   const auth = useAuth();
@@ -19,7 +71,13 @@ export default function TripPage() {
 
   if (!auth.isAuthenticated) return (
     <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
-      <p className="text-gray-400">Sign in to view this trip</p>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-sm text-center space-y-5">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">You're invited!</h2>
+          <p className="text-sm text-gray-400 mt-1">Sign in to view this shared trip</p>
+        </div>
+        <InlineLogin onSignIn={auth.signIn} />
+      </div>
     </div>
   );
 
