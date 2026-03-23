@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["node_modules/.bin/vite", "--host"],
+      "port": 5173,
+      "cwd": "client"
+    },
+    {
+      "name": "server",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["index.js"],
+      "port": 4000,
+      "cwd": "server"
+    }
+  ]
+}
