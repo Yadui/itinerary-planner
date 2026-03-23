@@ -118,7 +118,7 @@ export default function TripPage() {
           <div className="flex items-center gap-3">
             {statusText && <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>}
             {error && <span className="text-xs text-red-500 max-w-[150px] truncate" title={error}>{error}</span>}
-            {isOwner && (
+            {canEdit && (
               <button
                 onClick={() => setShowShare(true)}
                 className="px-3 py-2 border border-gray-200 text-gray-600 font-medium rounded-xl text-sm hover:bg-gray-50"
