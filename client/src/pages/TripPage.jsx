@@ -9,6 +9,7 @@ import DirectionsMap from '../components/schedule/DirectionsMap';
 import TripForm from '../components/wizard/TripForm';
 import ShareDialog from '../components/ui/ShareDialog';
 import HealthIndicator from '../components/ui/HealthIndicator';
+import AuthBar from '../components/ui/AuthBar';
 
 const EMAIL_DOMAIN = '@trip.io';
 const TABS = { ACTIVITIES: 'activities', ITINERARY: 'itinerary' };
@@ -244,6 +245,13 @@ export default function TripPage() {
               </button>
             )}
             <HealthIndicator />
+            <AuthBar
+              user={auth.user}
+              loading={auth.loading}
+              onSignIn={auth.signIn}
+              onSignUp={auth.signUp}
+              onSignOut={auth.signOut}
+            />
           </div>
         </div>
       </header>
