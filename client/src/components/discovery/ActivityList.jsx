@@ -557,7 +557,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
       )}
 
       {fetching ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
           ))}
@@ -579,7 +579,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
                     <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
                       Your Picks
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {pinnedItems.map((place) => (
                         <ActivityCard
                           key={place.id}
@@ -596,7 +596,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
                   <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
                     {showSelected ? 'Selected Activities' : searchQuery ? `Results for "${searchQuery}"` : 'Most Popular'}
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {(showSelected ? filtered : unpinnedItems).slice(0, 10).map((place) => (
                       <ActivityCard
                         key={place.id}
@@ -611,7 +611,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
                 {(showSelected ? filtered : unpinnedItems).length > 10 && (
                   <section>
                     <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">More to Explore</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {(showSelected ? filtered : unpinnedItems).slice(10).map((place) => (
                         <ActivityCard
                           key={place.id}

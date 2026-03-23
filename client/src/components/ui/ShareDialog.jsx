@@ -56,8 +56,13 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
 
   async function handleRevoke() {
     try {
-      await fetch(`/api/trips/${tripId}/share`, { method: 'DELETE', headers });
+      const res = await fetch(`/api/trips/${tripId}/share`, { method: 'DELETE', headers });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to revoke');
+      }
       setShare(null);
+      await fetchCollaborators();
     } catch (err) {
       setError(err.message);
     }
@@ -65,7 +70,11 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
 
   async function handleRemove(userId) {
     try {
-      await fetch(`/api/trips/${tripId}/collaborators/${userId}`, { method: 'DELETE', headers });
+      const res = await fetch(`/api/trips/${tripId}/collaborators/${userId}`, { method: 'DELETE', headers });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to remove');
+      }
       setCollaborators((prev) => prev.filter((c) => c.user_id !== userId));
     } catch (err) {
       setError(err.message);

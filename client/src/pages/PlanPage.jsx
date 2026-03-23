@@ -41,6 +41,7 @@ export default function PlanPage() {
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showDirections, setShowDirections] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [savedTrips, setSavedTrips] = useState([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
   const [loadingTripId, setLoadingTripId] = useState(null);
@@ -273,6 +274,30 @@ export default function PlanPage() {
               </span>
             </div>
             <div className="flex items-center gap-3">
+              {step === STEPS.ITINERARY && (
+                <>
+                  {tripId && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/trip/${tripId}`);
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2000);
+                      }}
+                      className={`text-xs font-medium transition-colors ${linkCopied ? 'text-green-600' : 'text-[#007AFF] hover:opacity-70'}`}
+                    >
+                      {linkCopied ? '✓ Link copied' : 'Copy link'}
+                    </button>
+                  )}
+                  {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Unsaved changes" />}
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !auth.isAuthenticated}
+                    className="px-3 py-1.5 bg-[#007AFF] text-white font-semibold rounded-lg text-xs hover:opacity-90 disabled:opacity-40 transition-opacity"
+                  >
+                    {saving ? 'Saving…' : !auth.isAuthenticated ? 'Sign in' : isDirty ? 'Save' : 'Saved ✓'}
+                  </button>
+                </>
+              )}
               <button onClick={startOver} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
                 Start over
               </button>
@@ -308,7 +333,7 @@ export default function PlanPage() {
         </header>
       )}
 
-      <main className="max-w-3xl mx-auto px-4">
+      <main className={`mx-auto px-4 ${step === STEPS.ACTIVITIES ? 'max-w-6xl' : 'max-w-3xl'}`}>
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
         )}
@@ -423,33 +448,6 @@ export default function PlanPage() {
               onItineraryChange={handleItineraryChange}
             />
 
-            {/* Save bar */}
-            <div className="mt-6 flex items-center justify-between bg-white rounded-2xl shadow-sm px-5 py-4">
-              <div className="text-sm">
-                {isDirty && <span className="text-amber-500 font-medium">Unsaved changes</span>}
-                {!isDirty && tripId && <span className="text-green-600 font-medium">Saved</span>}
-                {!isDirty && !tripId && <span className="text-gray-400">Not saved yet</span>}
-              </div>
-              <div className="flex items-center gap-3">
-                {tripId && (
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/trip/${tripId}`);
-                    }}
-                    className="text-sm text-[#007AFF] hover:opacity-70"
-                  >
-                    Copy link
-                  </button>
-                )}
-                <button
-                  onClick={handleSave}
-                  disabled={saving || !auth.isAuthenticated}
-                  className="px-5 py-2 bg-[#007AFF] text-white font-semibold rounded-xl text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
-                >
-                  {saving ? 'Saving…' : !auth.isAuthenticated ? 'Sign in to save' : 'Save Trip'}
-                </button>
-              </div>
-            </div>
           </>
         )}
       </main>

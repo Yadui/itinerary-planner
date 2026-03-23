@@ -117,7 +117,15 @@ create policy "collab_select" on trip_collaborators
 create policy "collab_insert" on trip_collaborators
   for insert with check (
     exists (select 1 from trips where id = trip_id and user_id = auth.uid())
-    or user_id = auth.uid()
+    or (
+      user_id = auth.uid()
+      and exists (
+        select 1 from trips
+        where id = trip_id
+        and share_token is not null
+        and (share_token_expires_at is null or share_token_expires_at > now())
+      )
+    )
   );
 create policy "collab_delete" on trip_collaborators
   for delete using (
@@ -165,6 +173,34 @@ create policy "items_delete" on itinerary_items
   for delete using (
     day_id in (select id from itinerary_days where is_trip_editor(trip_id))
   );
+
+-- ─── Atomic Join Function (prevents race condition on collaborator limit) ───
+create or replace function join_trip(p_trip_id uuid, p_user_id uuid, p_role text, p_max int default 5)
+returns text as $$
+declare
+  current_count int;
+begin
+  -- Lock the collaborator rows for this trip to prevent concurrent inserts
+  select count(*) into current_count
+  from trip_collaborators
+  where trip_id = p_trip_id
+  for update;
+
+  if current_count >= p_max then
+    return 'full';
+  end if;
+
+  insert into trip_collaborators (trip_id, user_id, role)
+  values (p_trip_id, p_user_id, p_role)
+  on conflict (trip_id, user_id) do nothing;
+
+  if not found then
+    return 'already_member';
+  end if;
+
+  return 'joined';
+end;
+$$ language plpgsql security definer;
 
 -- ─── Indexes ───
 create index if not exists idx_trips_user on trips(user_id);

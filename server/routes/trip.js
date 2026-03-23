@@ -414,35 +414,21 @@ router.post('/:id/join/:token', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Share link has expired' });
     }
 
-    // Atomic collaborator limit check
-    const { data: collabs } = await sb
-      .from('trip_collaborators')
-      .select('id, user_id')
-      .eq('trip_id', tripId);
+    // Atomic join — uses Postgres function with row-level lock
+    const { data: result, error: rpcErr } = await sb.rpc('join_trip', {
+      p_trip_id: tripId,
+      p_user_id: req.user.id,
+      p_role: trip.share_role,
+      p_max: 5,
+    });
 
-    // Already a collaborator?
-    if (collabs?.some((c) => c.user_id === req.user.id)) {
-      return res.json({ ok: true, role: trip.share_role, message: 'Already a collaborator' });
-    }
+    if (rpcErr) throw rpcErr;
 
-    if ((collabs?.length || 0) >= 5) {
+    if (result === 'full') {
       return res.status(400).json({ error: 'Trip is full (max 5 collaborators)' });
     }
-
-    // Insert collaborator
-    const { error } = await sb
-      .from('trip_collaborators')
-      .insert([{
-        trip_id: tripId,
-        user_id: req.user.id,
-        role: trip.share_role,
-      }]);
-
-    if (error) {
-      if (error.code === '23505') { // unique violation
-        return res.json({ ok: true, role: trip.share_role, message: 'Already a collaborator' });
-      }
-      throw error;
+    if (result === 'already_member') {
+      return res.json({ ok: true, role: trip.share_role, message: 'Already a collaborator' });
     }
 
     res.json({ ok: true, role: trip.share_role });
@@ -550,15 +536,18 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     return res.status(403).json({ error: 'Only the owner can transfer' });
   }
 
-  // New owner must be an existing collaborator
+  // New owner must be an existing collaborator with editor role
   const { data: collab } = await serviceSb
     .from('trip_collaborators')
-    .select('id')
+    .select('id, role')
     .eq('trip_id', tripId)
     .eq('user_id', new_owner_id)
     .single();
   if (!collab) {
     return res.status(400).json({ error: 'New owner must be a collaborator' });
+  }
+  if (collab.role !== 'editor') {
+    return res.status(400).json({ error: 'New owner must have editor role' });
   }
 
   try {
