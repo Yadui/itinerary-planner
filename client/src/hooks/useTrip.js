@@ -90,6 +90,12 @@ export function useTrip(tripId, accessToken) {
     markDirty();
   }, [markDirty]);
 
+  // ─── Update activities ───
+  const updateActivities = useCallback((newActivities) => {
+    setActivities(newActivities);
+    markDirty();
+  }, [markDirty]);
+
   // ─── Update trip config (cities, dates, transport) ───
   const updateTripConfig = useCallback((newConfig) => {
     setTrip((prev) => {
@@ -197,6 +203,7 @@ export function useTrip(tripId, accessToken) {
     isDirty,
     saveStatus,
     updateItinerary,
+    updateActivities,
     updateTripConfig,
     saveTrip,
     createTrip,
