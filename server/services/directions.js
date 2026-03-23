@@ -80,7 +80,11 @@ export async function batchTravelTimes(activities, stayLocation, mode = 'walking
     }
   }
 
-  await Promise.all(tasks);
+  // Process in batches of 10 to avoid connection resets
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+    await Promise.all(tasks.slice(i, i + BATCH_SIZE));
+  }
   return results;
 }
 
