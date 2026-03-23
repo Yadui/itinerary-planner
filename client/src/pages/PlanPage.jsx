@@ -59,49 +59,8 @@ export default function PlanPage() {
       .finally(() => setLoadingTrips(false));
   }, [auth.isAuthenticated, auth.accessToken, step]);
 
-  async function loadSavedTrip(id) {
-    setLoadingTripId(id);
-    try {
-      const data = await api.loadTrip(id, auth.accessToken);
-      const config = data.trip.config;
-      setTripConfig(config);
-      setTripId(id);
-
-      // Reconstruct selected activities from saved data
-      if (data.activities?.length) {
-        const restored = data.activities.map((a) => ({
-          id: a.place_id,
-          name: a.name,
-          location: { lat: a.lat, lng: a.lng },
-          duration: a.duration,
-          rating: a.rating || a.metadata?.rating,
-          priceLevel: a.price_level ?? a.metadata?.price_level,
-          types: a.types || a.metadata?.types || [],
-          address: a.address || a.metadata?.address || '',
-          photo: a.photo || a.metadata?.photo,
-          city: a.city || config?.cities?.find((c) =>
-            data.itinerary?.days?.find((d) => d.city === c.name && d.items?.some((it) => it.place_id === a.place_id))
-          )?.name || config?.cities?.[0]?.name,
-          source: a.source || a.metadata?.source || null,
-        }));
-        setSelectedActivities(restored);
-      }
-
-      // Load itinerary if exists, but always open to activities page
-      if (data.itinerary?.days?.length) {
-        setItinerary(data.itinerary);
-        setIsDirty(false);
-      }
-      if (data.activities?.length || data.itinerary?.days?.length) {
-        setStep(STEPS.ACTIVITIES);
-      } else {
-        setStep(STEPS.FORM);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoadingTripId(null);
-    }
+  function loadSavedTrip(id) {
+    navigate(`/trip/${id}`);
   }
 
   function handleTripSubmit(config) {
