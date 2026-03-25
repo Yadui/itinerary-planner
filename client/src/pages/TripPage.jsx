@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTrip } from '../hooks/useTrip';
 import { api } from '../lib/api';
@@ -14,7 +14,7 @@ import { MapIcon, GearIcon, PinIcon, ListIcon, CheckIcon } from '../components/u
 import { usePresence, displayName, userColor } from '../hooks/usePresence';
 
 const EMAIL_DOMAIN = '@trip.io';
-const TABS = { ACTIVITIES: 'activities', ITINERARY: 'itinerary' };
+const TABS = { DETAILS: 'details', ACTIVITIES: 'activities', ITINERARY: 'itinerary' };
 
 function InlineLogin({ onSignIn }) {
   const [username, setUsername] = useState('');
@@ -54,7 +54,10 @@ function InlineLogin({ onSignIn }) {
 
 export default function TripPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const auth = useAuth();
+  const joinToken = searchParams.get('join');
 
   // Stable refs used by callbacks that need always-current values
   const isDirtyRef = useRef(false);
@@ -72,14 +75,26 @@ export default function TripPage() {
   useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
   useEffect(() => { loadTripRef.current = loadTrip; }, [loadTrip]);
 
+  // Handle ?join=token — auto-join then strip param
+  useEffect(() => {
+    if (!joinToken || auth.loading || !auth.isAuthenticated) return;
+    fetch(`/api/trips/${id}/join/${joinToken}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.accessToken}` },
+    }).then(() => {
+      navigate(`/trip/${id}`, { replace: true });
+    }).catch(() => {
+      navigate(`/trip/${id}`, { replace: true });
+    });
+  }, [joinToken, auth.loading, auth.isAuthenticated, auth.accessToken, id]);
+
   // Notify collaborators after a successful save
   useEffect(() => {
     if (saveStatus === 'saved') broadcastTripUpdate();
   }, [saveStatus, broadcastTripUpdate]);
 
-  const [activeTab, setActiveTab] = useState(TABS.ACTIVITIES);
+  const [activeTab, setActiveTab] = useState(TABS.DETAILS);
   const [showShare, setShowShare] = useState(false);
-  const [showEditDetails, setShowEditDetails] = useState(false);
   const [showDirections, setShowDirections] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -328,6 +343,17 @@ export default function TripPage() {
           </div>
         )}
 
+        {activeTab === TABS.DETAILS && (
+          <TripForm
+            initialValues={trip.config}
+            onSubmit={canEdit ? (config) => {
+              updateTripConfig(config);
+              setActiveTab(TABS.ACTIVITIES);
+            } : undefined}
+            submitLabel="Save Details"
+          />
+        )}
+
         {activeTab === TABS.ACTIVITIES && trip.config && (
           <ActivityList
             tripConfig={trip.config}
@@ -387,15 +413,17 @@ export default function TripPage() {
       {/* Floating bottom tabs */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
         <div className="flex bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          {canEdit && (
-            <button
-              onClick={() => setShowEditDetails(true)}
-              className="px-4 py-3 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-100"
-            >
-              <GearIcon className="text-base mx-auto mb-0.5" />
-              Details
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab(TABS.DETAILS)}
+            className={`px-5 py-3 text-xs font-medium transition-colors ${
+              activeTab === TABS.DETAILS
+                ? 'text-[#007AFF] bg-[#007AFF]/5'
+                : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            <GearIcon className="text-base mx-auto mb-0.5" />
+            Details
+          </button>
           <button
             onClick={() => setActiveTab(TABS.ACTIVITIES)}
             className={`px-5 py-3 text-xs font-medium transition-colors ${
@@ -430,28 +458,6 @@ export default function TripPage() {
       {/* Modals */}
       {showShare && (
         <ShareDialog tripId={id} accessToken={auth.accessToken} onClose={() => setShowShare(false)} />
-      )}
-
-      {showEditDetails && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowEditDetails(false)}>
-          <div className="bg-[#f5f5f7] rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="px-5 py-4 bg-white rounded-t-2xl border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
-              <h2 className="text-lg font-semibold text-gray-900">Edit Trip Details</h2>
-              <button onClick={() => setShowEditDetails(false)}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">✕</button>
-            </div>
-            <div className="p-4">
-              <TripForm
-                initialValues={trip.config}
-                onSubmit={(config) => {
-                  updateTripConfig(config);
-                  setShowEditDetails(false);
-                }}
-                submitLabel="Update Details"
-              />
-            </div>
-          </div>
-        </div>
       )}
 
       {showDirections && itinerary && (

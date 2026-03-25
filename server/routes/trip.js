@@ -488,6 +488,55 @@ router.get('/:id/collaborators', requireAuth, async (req, res) => {
   }
 });
 
+// ─── Add Collaborator by Username ───
+// POST /api/trips/:id/collaborators
+router.post('/:id/collaborators', requireAuth, async (req, res) => {
+  const sb = getSupabaseForUser(req.accessToken);
+  const serviceSb = getSupabase();
+  const tripId = req.params.id;
+  const { username, role } = req.body;
+
+  if (!username) return res.status(400).json({ error: 'Username is required' });
+
+  // Verify ownership
+  const { data: trip } = await sb.from('trips').select('id, user_id').eq('id', tripId).single();
+  if (!trip || trip.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Only the owner can add collaborators' });
+  }
+
+  // Resolve username to email
+  const email = username.includes('@') ? username.toLowerCase().trim() : username.toLowerCase().trim() + '@trip.io';
+
+  // Look up user by email via listUsers (admin API v2 has no getUserByEmail)
+  const { data: listData, error: lookupErr } = await serviceSb.auth.admin.listUsers({ perPage: 1000 });
+  if (lookupErr) return res.status(500).json({ error: 'User lookup failed' });
+  const found = listData?.users?.find((u) => u.email === email);
+  if (!found) return res.status(404).json({ error: `User "${username}" not found` });
+
+  const targetUserId = found.id;
+
+  // Can't add yourself
+  if (targetUserId === req.user.id) {
+    return res.status(400).json({ error: 'You are already the owner' });
+  }
+
+  // Check collaborator count
+  const { count } = await serviceSb
+    .from('trip_collaborators')
+    .select('id', { count: 'exact', head: true })
+    .eq('trip_id', tripId);
+  if (count >= 5) return res.status(400).json({ error: 'Trip is full (max 5 collaborators)' });
+
+  // Insert (ignore conflict if already a member)
+  const collabRole = role === 'viewer' ? 'viewer' : 'editor';
+  const { error: insertErr } = await serviceSb
+    .from('trip_collaborators')
+    .upsert({ trip_id: tripId, user_id: targetUserId, role: collabRole }, { onConflict: 'trip_id,user_id' });
+
+  if (insertErr) return res.status(500).json({ error: insertErr.message });
+  res.json({ ok: true, email, role: collabRole });
+});
+
 // ─── Remove Collaborator ───
 // DELETE /api/trips/:id/collaborators/:userId
 router.delete('/:id/collaborators/:userId', requireAuth, async (req, res) => {

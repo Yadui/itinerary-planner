@@ -1,11 +1,17 @@
 const BASE = '/api';
 
+async function parseJSON(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try { return JSON.parse(text); } catch { return {}; }
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
-  const data = await res.json();
+  const data = await parseJSON(res);
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
@@ -14,7 +20,7 @@ async function authedRequest(path, accessToken, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   const res = await fetch(`${BASE}${path}`, { headers, ...options });
-  const data = await res.json();
+  const data = await parseJSON(res);
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }

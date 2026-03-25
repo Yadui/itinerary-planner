@@ -6,6 +6,8 @@ import placesRoutes from './routes/places.js';
 import scheduleRoutes from './routes/schedule.js';
 import extractRoutes from './routes/extract.js';
 import { checkProviders } from './services/ai.js';
+import { requireAuth } from './middleware/auth.js';
+import { getSupabase } from './services/supabase.js';
 
 const app = express();
 app.use(cors());
@@ -43,6 +45,29 @@ app.get('/api/health', async (req, res) => {
 
   res.json(results);
 });
+// ─── User Search (for collaborator invite suggestions) ───
+// GET /api/users/search?q=username
+app.get('/api/users/search', requireAuth, async (req, res) => {
+  const q = (req.query.q || '').toLowerCase().trim();
+  if (q.length < 1) return res.json([]);
+  try {
+    const serviceSb = getSupabase();
+    const { data, error } = await serviceSb.auth.admin.listUsers({ perPage: 1000 });
+    if (error) return res.status(500).json({ error: error.message });
+    const EMAIL_DOMAIN = '@trip.io';
+    const results = (data?.users || [])
+      .filter((u) => u.id !== req.user.id && u.email?.includes(q))
+      .slice(0, 8)
+      .map((u) => ({
+        id: u.id,
+        username: u.email?.endsWith(EMAIL_DOMAIN) ? u.email.replace(EMAIL_DOMAIN, '') : u.email,
+      }));
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/api/trips', tripRoutes);
 app.use('/api/places', placesRoutes);
 app.use('/api/schedule', scheduleRoutes);
@@ -50,7 +75,7 @@ app.use('/api/extract', extractRoutes);
 
 // In Vercel, the app is imported as a handler — don't listen
 if (!process.env.VERCEL) {
-  const PORT = process.env.PORT || 3001;
+  const PORT = process.env.PORT || 4001;
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const EMAIL_DOMAIN = '@trip.io';
 function displayName(email) {
@@ -12,10 +12,16 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
   const [share, setShare] = useState(null);
   const [collaborators, setCollaborators] = useState([]);
   const [isOwner, setIsOwner] = useState(false);
-  const [role, setRole] = useState('editor');
-  const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
+
+  // Invite state
+  const [inviteUsername, setInviteUsername] = useState('');
+  const [inviteRole, setInviteRole] = useState('editor');
+  const [inviting, setInviting] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const suggestTimerRef = useRef(null);
 
   const headers = {
     'Content-Type': 'application/json',
@@ -31,7 +37,6 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
       setCollaborators(data.collaborators || []);
       setShare(data.share);
       setIsOwner(data.is_owner);
-      if (data.share?.role) setRole(data.share.role);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -39,27 +44,29 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
     }
   }
 
-  useEffect(() => { fetchCollaborators(); }, [tripId]);
-
-  async function handleCreateLink() {
-    setCreating(true);
-    setError(null);
+  // Auto-create share link if owner and none exists
+  async function ensureShareLink() {
     try {
       const res = await fetch(`/api/trips/${tripId}/share`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role: 'editor' }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setShare(data);
-      await fetchCollaborators();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setCreating(false);
-    }
+      if (res.ok) setShare(data);
+    } catch {}
   }
+
+  useEffect(() => {
+    fetchCollaborators();
+  }, [tripId]);
+
+  // Auto-create link once we know user is owner and there's no link
+  useEffect(() => {
+    if (!loading && isOwner && !share) {
+      ensureShareLink();
+    }
+  }, [loading, isOwner, share]);
 
   async function handleRevoke() {
     try {
@@ -69,7 +76,6 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
         throw new Error(data.error || 'Failed to revoke');
       }
       setShare(null);
-      await fetchCollaborators();
     } catch (err) {
       setError(err.message);
     }
@@ -106,20 +112,54 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
     }
   }
 
+  function handleUsernameChange(val) {
+    setInviteUsername(val);
+    setInviteSuccess(null);
+    clearTimeout(suggestTimerRef.current);
+    if (val.trim().length < 1) { setSuggestions([]); return; }
+    suggestTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(val.trim())}`, { headers });
+        if (res.ok) setSuggestions(await res.json());
+      } catch {}
+    }, 250);
+  }
+
+  function pickSuggestion(username) {
+    setInviteUsername(username);
+    setSuggestions([]);
+  }
+
+  async function handleInvite(e) {
+    e.preventDefault();
+    if (!inviteUsername.trim()) return;
+    setInviting(true);
+    setInviteSuccess(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/trips/${tripId}/collaborators`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ username: inviteUsername.trim(), role: inviteRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setInviteSuccess(`Added ${displayName(data.email)}`);
+      setInviteUsername('');
+      await fetchCollaborators();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setInviting(false);
+    }
+  }
+
   function copyLink() {
     if (!share?.token) return;
-    const url = `${window.location.origin}/trip/${tripId}/join/${share.token}`;
+    const url = `${window.location.origin}/trip/${tripId}?join=${share.token}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }
-
-  function expiryText() {
-    if (!share?.expires_at) return '';
-    const diff = new Date(share.expires_at) - new Date();
-    if (diff <= 0) return 'Expired';
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return `Expires in ${days} day${days !== 1 ? 's' : ''}`;
   }
 
   return (
@@ -137,56 +177,91 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
             <p className="text-sm text-gray-400 text-center py-4">Loading...</p>
           ) : (
             <>
-              {/* Share link section */}
+              {/* Invite by username */}
               {isOwner && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">Link role:</label>
+                <form onSubmit={handleInvite} className="space-y-2">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Add people</label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        value={inviteUsername}
+                        onChange={(e) => handleUsernameChange(e.target.value)}
+                        onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+                        placeholder="Username"
+                        autoComplete="off"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
+                      />
+                      {suggestions.length > 0 && (
+                        <ul className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                          {suggestions.map((s) => (
+                            <li key={s.id}>
+                              <button
+                                type="button"
+                                onMouseDown={() => pickSuggestion(s.username)}
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                {s.username}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                     <select
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      className="text-sm border border-gray-200 rounded-lg px-2 py-1"
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value)}
+                      className="text-sm border border-gray-200 rounded-xl px-2 py-2"
                     >
                       <option value="editor">Editor</option>
                       <option value="viewer">Viewer</option>
                     </select>
-                  </div>
-
-                  {share ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={copyLink}
-                          className="flex-1 px-3 py-2 bg-[#007AFF] text-white text-sm font-medium rounded-xl hover:opacity-90"
-                        >
-                          {copied ? 'Copied!' : 'Copy Link'}
-                        </button>
-                        <button
-                          onClick={handleRevoke}
-                          className="px-3 py-2 border border-red-200 text-red-500 text-sm rounded-xl hover:bg-red-50"
-                        >
-                          Revoke
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-gray-400">{expiryText()}</p>
-                        <button
-                          onClick={handleCreateLink}
-                          className="text-xs text-[#007AFF] hover:underline"
-                          disabled={creating}
-                        >
-                          Regenerate
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
                     <button
-                      onClick={handleCreateLink}
-                      disabled={creating}
-                      className="w-full px-3 py-2 bg-[#007AFF] text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-50"
+                      type="submit"
+                      disabled={inviting || !inviteUsername.trim()}
+                      className="px-3 py-2 bg-[#007AFF] text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-40"
                     >
-                      {creating ? 'Creating...' : 'Create Share Link'}
+                      {inviting ? '…' : 'Add'}
                     </button>
+                  </div>
+                  {inviteSuccess && <p className="text-xs text-green-600">{inviteSuccess}</p>}
+                </form>
+              )}
+
+              {/* Share link */}
+              {isOwner && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Share link</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={copyLink}
+                      disabled={!share}
+                      className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-xl hover:bg-gray-200 disabled:opacity-40 text-left truncate"
+                    >
+                      {share ? (copied ? '✓ Copied!' : `${window.location.origin}/trip/${tripId}?join=…`) : 'Generating…'}
+                    </button>
+                    <button
+                      onClick={copyLink}
+                      disabled={!share}
+                      className="px-3 py-2 bg-[#007AFF] text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-40"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  {share && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-gray-400">
+                        {share.role} access · {(() => {
+                          const diff = new Date(share.expires_at) - new Date();
+                          if (diff <= 0) return 'Expired';
+                          const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                          return `Expires in ${days}d`;
+                        })()}
+                      </p>
+                      <button onClick={handleRevoke} className="text-xs text-red-400 hover:text-red-600">
+                        Revoke
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -197,7 +272,7 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
                     Collaborators ({collaborators.length}/5)
                   </p>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {collaborators.map((c) => (
                       <div key={c.id} className="flex items-center justify-between py-1.5">
                         <div className="flex items-center gap-2 min-w-0">
@@ -232,8 +307,8 @@ export default function ShareDialog({ tripId, accessToken, onClose }) {
                 </div>
               )}
 
-              {collaborators.length === 0 && !loading && (
-                <p className="text-sm text-gray-400 text-center py-2">No collaborators yet</p>
+              {collaborators.length === 0 && !loading && !isOwner && (
+                <p className="text-sm text-gray-400 text-center py-2">No collaborators</p>
               )}
             </>
           )}
