@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { api } from '../../lib/api';
 import ActivityCard from './ActivityCard';
+import { InstagramIcon, CheckIcon } from '../ui/Icons';
 
 const CATEGORY_FILTERS = [
   { key: 'all', label: 'All' },
@@ -351,7 +352,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           }`}
           title="Import from Instagram"
         >
-          <span className="text-base">📷</span>
+          <InstagramIcon className="text-base" />
         </button>
       </form>
 
@@ -465,7 +466,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
                           : 'bg-gray-50 border-gray-200 hover:border-[#007AFF] hover:bg-[#007AFF]/5'
                       }`}
                     >
-                      <span className="text-sm">{isAdded ? '✓' : '+'}</span>
+                      <span className="text-sm">{isAdded ? <CheckIcon /> : '+'}</span>
                       <div>
                         <p className={`text-sm font-medium ${isAdded ? 'text-green-700' : 'text-gray-900'}`}>{activity.name}</p>
                         <p className="text-xs text-gray-400">
@@ -559,7 +560,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              📷 IG Reels
+              <InstagramIcon className="inline" /> IG Reels
             </button>
           )}
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { CheckIcon, XIcon } from '../components/ui/Icons';
 
 const EMAIL_DOMAIN = '@trip.io';
 
@@ -112,7 +113,7 @@ export default function JoinPage() {
         {status === 'success' && (
           <>
             <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-4 text-xl">
-              ✓
+              <CheckIcon />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Joined!</h2>
             <p className="text-sm text-gray-500">{message}</p>
@@ -123,7 +124,7 @@ export default function JoinPage() {
         {status === 'error' && (
           <>
             <div className="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto mb-4 text-xl">
-              ✗
+              <XIcon />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Cannot Join</h2>
             <p className="text-sm text-gray-500 mb-4">{message}</p>

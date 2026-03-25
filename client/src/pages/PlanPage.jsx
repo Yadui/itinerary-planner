@@ -10,6 +10,7 @@ import ActivityList from '../components/discovery/ActivityList';
 import ItineraryView from '../components/schedule/ItineraryView';
 import DirectionsMap from '../components/schedule/DirectionsMap';
 import HealthIndicator from '../components/ui/HealthIndicator';
+import { CheckIcon, MapIcon, ListIcon, PinIcon, CalendarIcon, LoaderIcon } from '../components/ui/Icons';
 
 const STEPS = { FORM: 'form', ACTIVITIES: 'activities', ITINERARY: 'itinerary' };
 
@@ -246,7 +247,7 @@ export default function PlanPage() {
                       }}
                       className={`text-xs font-medium transition-colors ${linkCopied ? 'text-green-600' : 'text-[#007AFF] hover:opacity-70'}`}
                     >
-                      {linkCopied ? '✓ Link copied' : 'Copy link'}
+                      {linkCopied ? <><CheckIcon className="inline" /> Link copied</> : 'Copy link'}
                     </button>
                   )}
                   {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Unsaved changes" />}
@@ -255,7 +256,7 @@ export default function PlanPage() {
                     disabled={saving || !auth.isAuthenticated}
                     className="px-3 py-1.5 bg-[#007AFF] text-white font-semibold rounded-lg text-xs hover:opacity-90 disabled:opacity-40 transition-opacity"
                   >
-                    {saving ? 'Saving…' : !auth.isAuthenticated ? 'Sign in' : isDirty ? 'Save' : 'Saved ✓'}
+                    {saving ? 'Saving…' : !auth.isAuthenticated ? 'Sign in' : isDirty ? 'Save' : <><CheckIcon className="inline mr-0.5" />Saved</>}
                   </button>
                 </>
               )}
@@ -366,7 +367,7 @@ export default function PlanPage() {
                                 </span>
                               )}
                               <span className="text-gray-300 group-hover:text-[#007AFF] transition-colors text-sm">
-                                {loadingTripId === trip.id ? '⏳' : '→'}
+                                {loadingTripId === trip.id ? <LoaderIcon className="animate-spin" /> : '→'}
                               </span>
                             </div>
                           </div>
@@ -398,7 +399,7 @@ export default function PlanPage() {
                 onClick={() => setShowDirections(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm text-sm font-medium text-[#007AFF] hover:bg-gray-50 transition-colors"
               >
-                <span>🗺️</span> View Directions
+                <MapIcon /> View Directions
               </button>
             </div>
 
@@ -417,9 +418,9 @@ export default function PlanPage() {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30">
         <div className="flex items-center bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200/60 p-1.5 gap-1">
           {[
-            { key: STEPS.FORM, label: 'Trip Details', icon: '📋', num: 1 },
-            { key: STEPS.ACTIVITIES, label: 'Activities', icon: '📍', num: 2 },
-            { key: STEPS.ITINERARY, label: 'Itinerary', icon: '📅', num: 3 },
+            { key: STEPS.FORM, label: 'Trip Details', Icon: ListIcon, num: 1 },
+            { key: STEPS.ACTIVITIES, label: 'Activities', Icon: PinIcon, num: 2 },
+            { key: STEPS.ITINERARY, label: 'Itinerary', Icon: CalendarIcon, num: 3 },
           ].map((tab) => {
             const isActive = step === tab.key;
             const isReachable =
@@ -439,7 +440,7 @@ export default function PlanPage() {
                       : 'text-gray-300 cursor-not-allowed'
                 }`}
               >
-                <span className="text-xs">{tab.icon}</span>
+                <tab.Icon className="text-xs" />
                 <span className="hidden sm:inline">{tab.label}</span>
                 <span className="sm:hidden">{tab.num}</span>
               </button>

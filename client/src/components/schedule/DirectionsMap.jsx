@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { WalkIcon, TrainIcon, CarIcon } from '../ui/Icons';
 
 const SNAP_COLLAPSED = 80;
 const SNAP_HALF_VH = 40;
@@ -14,9 +15,9 @@ function getSnapPx() {
 }
 
 function travelModeIcon(mode) {
-  if (mode === 'WALKING') return '🚶';
-  if (mode === 'TRANSIT') return '🚇';
-  return '🚗';
+  if (mode === 'WALKING') return <WalkIcon />;
+  if (mode === 'TRANSIT') return <TrainIcon />;
+  return <CarIcon />;
 }
 
 export default function DirectionsMap({ itinerary, tripConfig, onClose }) {

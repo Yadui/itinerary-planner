@@ -1,3 +1,5 @@
+import { PinIcon, CheckIcon } from '../ui/Icons';
+
 function Stars({ rating }) {
   if (!rating) return null;
   return (
@@ -26,14 +28,14 @@ export default function ActivityCard({ place, selected, onToggle }) {
         <img src={place.photo} alt={place.name} className="w-full h-32 object-cover" />
       ) : (
         <div className="w-full h-32 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-          <span className="text-3xl">📍</span>
+          <PinIcon className="text-3xl text-blue-300" />
         </div>
       )}
 
       {/* Selected badge */}
       {selected && (
         <div className="absolute top-2 right-2 w-6 h-6 bg-[#007AFF] rounded-full flex items-center justify-center">
-          <span className="text-white text-xs">✓</span>
+          <CheckIcon className="text-white text-xs" />
         </div>
       )}
 

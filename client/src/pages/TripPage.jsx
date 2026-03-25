@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTrip } from '../hooks/useTrip';
@@ -10,6 +10,8 @@ import TripForm from '../components/wizard/TripForm';
 import ShareDialog from '../components/ui/ShareDialog';
 import HealthIndicator from '../components/ui/HealthIndicator';
 import AuthBar from '../components/ui/AuthBar';
+import { MapIcon, GearIcon, PinIcon, ListIcon, CheckIcon } from '../components/ui/Icons';
+import { usePresence, displayName, userColor } from '../hooks/usePresence';
 
 const EMAIL_DOMAIN = '@trip.io';
 const TABS = { ACTIVITIES: 'activities', ITINERARY: 'itinerary' };
@@ -53,7 +55,28 @@ function InlineLogin({ onSignIn }) {
 export default function TripPage() {
   const { id } = useParams();
   const auth = useAuth();
-  const { trip, activities, itinerary, loading, error, isDirty, saving, saveStatus, saveTrip, updateItinerary, updateActivities, updateTripConfig } = useTrip(id, auth.accessToken);
+
+  // Stable refs used by callbacks that need always-current values
+  const isDirtyRef = useRef(false);
+  const loadTripRef = useRef(null);
+
+  // Stable callback passed to usePresence — reloads trip if no unsaved changes
+  const onRemoteUpdate = useCallback(() => {
+    if (!isDirtyRef.current) loadTripRef.current?.();
+  }, []);
+
+  const { trip, activities, itinerary, loading, error, isDirty, saving, saveStatus, saveTrip, updateItinerary, updateActivities, updateTripConfig, canUndo, undo, loadTrip } = useTrip(id, auth.accessToken);
+  const { activeUsers, setEditingTarget, broadcastTripUpdate } = usePresence(id, auth.user, { onRemoteUpdate });
+
+  // Keep refs current
+  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
+  useEffect(() => { loadTripRef.current = loadTrip; }, [loadTrip]);
+
+  // Notify collaborators after a successful save
+  useEffect(() => {
+    if (saveStatus === 'saved') broadcastTripUpdate();
+  }, [saveStatus, broadcastTripUpdate]);
+
   const [activeTab, setActiveTab] = useState(TABS.ACTIVITIES);
   const [showShare, setShowShare] = useState(false);
   const [showEditDetails, setShowEditDetails] = useState(false);
@@ -200,11 +223,16 @@ export default function TripPage() {
   const statusText = saveStatus === 'saving' ? 'Saving...'
     : saveStatus === 'saved' ? 'Saved'
     : saveStatus === 'conflict_resolved' ? 'Conflict resolved'
+    : saveStatus === 'skipped' ? 'Some changes skipped'
     : isDirty ? 'Unsaved' : null;
 
   const statusColor = saveStatus === 'saved' ? 'text-green-500'
     : saveStatus === 'conflict_resolved' ? 'text-amber-500'
+    : saveStatus === 'skipped' ? 'text-red-400'
     : isDirty ? 'text-amber-500' : 'text-gray-400';
+
+  // Presence: other active users (not self)
+  const otherUsers = [...activeUsers.values()];
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] pb-20">
@@ -219,6 +247,40 @@ export default function TripPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Presence avatars */}
+            {otherUsers.length > 0 && (
+              <div className="flex items-center -space-x-1.5 mr-1" title={otherUsers.map((u) => `${displayName(u.email)} (${u.action}${u.editing_target ? ': ' + u.editing_target : ''})`).join(', ')}>
+                {otherUsers.slice(0, 4).map((u, i) => {
+                  const name = displayName(u.email);
+                  const initial = name.charAt(0).toUpperCase();
+                  const color = userColor(u.email);
+                  return (
+                    <div
+                      key={i}
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {initial}
+                    </div>
+                  );
+                })}
+                {otherUsers.length > 4 && (
+                  <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-[10px] font-bold text-gray-600 ring-2 ring-white">
+                    +{otherUsers.length - 4}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Undo */}
+            {canUndo && canEdit && (
+              <button
+                onClick={undo}
+                className="px-2.5 py-1.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-100"
+                title="Undo last change"
+              >
+                Undo
+              </button>
+            )}
             <button
               onClick={copyLink}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -227,7 +289,7 @@ export default function TripPage() {
                   : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
               }`}
             >
-              {linkCopied ? '✓ Copied' : 'Copy link'}
+              {linkCopied ? <><CheckIcon className="inline" /> Copied</> : 'Copy link'}
             </button>
             {canEdit && (
               <button
@@ -283,7 +345,7 @@ export default function TripPage() {
                 onClick={() => setShowDirections(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm text-sm font-medium text-[#007AFF] hover:bg-gray-50 transition-colors"
               >
-                <span>🗺️</span> View Directions
+                <MapIcon /> View Directions
               </button>
             </div>
             <ItineraryView
@@ -292,6 +354,8 @@ export default function TripPage() {
               tripConfig={trip.config}
               readOnly={!canEdit}
               onItineraryChange={canEdit ? handleItineraryChange : undefined}
+              onEditingTarget={setEditingTarget}
+              editingUsers={activeUsers}
             />
           </>
         )}
@@ -328,7 +392,7 @@ export default function TripPage() {
               onClick={() => setShowEditDetails(true)}
               className="px-4 py-3 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-100"
             >
-              <span className="block text-base mb-0.5">⚙️</span>
+              <GearIcon className="text-base mx-auto mb-0.5" />
               Details
             </button>
           )}
@@ -340,7 +404,7 @@ export default function TripPage() {
                 : 'text-gray-500 hover:bg-gray-50'
             }`}
           >
-            <span className="block text-base mb-0.5">📍</span>
+            <PinIcon className="text-base mx-auto mb-0.5" />
             Activities
             {selectedActivities.length > 0 && (
               <span className="ml-1 text-[10px] bg-gray-100 rounded-full px-1.5 py-0.5">
@@ -356,9 +420,9 @@ export default function TripPage() {
                 : 'text-gray-500 hover:bg-gray-50'
             }`}
           >
-            <span className="block text-base mb-0.5">📋</span>
+            <ListIcon className="text-base mx-auto mb-0.5" />
             Itinerary
-            {itinerary && <span className="ml-1 text-[10px] text-green-500">✓</span>}
+            {itinerary && <CheckIcon className="inline ml-1 text-[10px] text-green-500" />}
           </button>
         </div>
       </div>

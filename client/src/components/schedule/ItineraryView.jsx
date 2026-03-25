@@ -19,8 +19,9 @@ import {
   recalcAndValidate,
 } from '../../lib/scheduler';
 import { api } from '../../lib/api';
+import { displayName, userColor } from '../../hooks/usePresence';
 
-export default function ItineraryView({ itinerary: initialItinerary, activities, tripConfig, readOnly, onItineraryChange }) {
+export default function ItineraryView({ itinerary: initialItinerary, activities, tripConfig, readOnly, onItineraryChange, onEditingTarget, editingUsers }) {
   const [itinerary, setItinerary] = useState(null);
   const [optimizing, setOptimizing] = useState(null);
 
@@ -61,15 +62,21 @@ export default function ItineraryView({ itinerary: initialItinerary, activities,
     const newIndex = items.findIndex((it) => it.place_id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
+    onEditingTarget?.(`day:${dayIndex}`);
     updateItinerary(reorderInDay(itinerary, dayIndex, oldIndex, newIndex, travelMatrix));
+    setTimeout(() => onEditingTarget?.(null), 2000);
   }
 
   function handleMoveToDay(fromDay, fromIndex, toDay) {
+    onEditingTarget?.(`day:${fromDay}`);
     updateItinerary(moveAcrossDays(itinerary, fromDay, fromIndex, toDay, itinerary.days[toDay].items.length, travelMatrix));
+    setTimeout(() => onEditingTarget?.(null), 2000);
   }
 
   function handleRemove(dayIndex, itemIndex) {
+    onEditingTarget?.(`day:${dayIndex}`);
     updateItinerary(removeItem(itinerary, dayIndex, itemIndex, travelMatrix));
+    setTimeout(() => onEditingTarget?.(null), 2000);
   }
 
   async function handleOptimizeDay(dayIndex) {
@@ -158,6 +165,11 @@ export default function ItineraryView({ itinerary: initialItinerary, activities,
         const hasErrors = day.items.some((it) => it.errors?.length > 0);
         const hasWarnings = day.items.some((it) => it.warnings?.length > 0) || day.dayIssues?.length > 0;
 
+        // Users currently editing this day
+        const dayEditors = editingUsers
+          ? [...editingUsers.values()].filter((u) => u.editing_target === `day:${dayIndex}`)
+          : [];
+
         return (
           <div key={dayIndex} className="bg-white rounded-2xl shadow-sm overflow-hidden">
             {/* Day header */}
@@ -174,6 +186,23 @@ export default function ItineraryView({ itinerary: initialItinerary, activities,
                   {!hasErrors && !hasWarnings && day.items.length > 0 && <span className="w-2 h-2 rounded-full bg-green-400" />}
                 </div>
                 <div className="flex items-center gap-2">
+                  {dayEditors.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex -space-x-1">
+                        {dayEditors.slice(0, 3).map((u, i) => (
+                          <div
+                            key={i}
+                            title={`${displayName(u.email)} is editing`}
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold ring-2 ring-white"
+                            style={{ backgroundColor: userColor(u.email) }}
+                          >
+                            {displayName(u.email).charAt(0).toUpperCase()}
+                          </div>
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-amber-500 font-medium">editing</span>
+                    </div>
+                  )}
                   {day.city && <span className="text-xs text-[#007AFF] font-medium">{day.city}</span>}
                   {!readOnly && day.items.length > 1 && (
                     <button

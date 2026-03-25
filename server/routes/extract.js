@@ -68,30 +68,88 @@ router.post('/instagram-url', async (req, res) => {
   }
 
   try {
-    // Try fetching the page to get og:description / meta content
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-      },
-    });
-    const html = await response.text();
+    let extractedText = '';
 
-    // Extract meta description and title
-    const descMatch = html.match(/<meta\s+(?:property="og:description"|name="description")\s+content="([^"]*?)"/i);
-    const titleMatch = html.match(/<meta\s+property="og:title"\s+content="([^"]*?)"/i);
-    const captionMatch = html.match(/"caption":\s*\{[^}]*"text":\s*"([^"]*?)"/);
+    // Normalize URL: extract post/reel ID and build embed URL
+    const idMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([A-Za-z0-9_-]+)/);
+    const postId = idMatch?.[1];
 
-    const extractedText = [
-      titleMatch?.[1] || '',
-      descMatch?.[1] || '',
-      captionMatch?.[1] || '',
-    ].filter(Boolean).join('\n\n');
+    // Method 1: Fetch /embed/captioned/ endpoint (most reliable — returns HTML with caption text)
+    if (postId) {
+      try {
+        const embedUrl = `https://www.instagram.com/p/${postId}/embed/captioned/`;
+        const embedRes = await fetch(embedUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(8000),
+        });
+        const embedHtml = await embedRes.text();
+
+        // Extract caption from the Caption div
+        const captionMatch = embedHtml.match(/class="Caption"[^>]*>([\s\S]*?)<div class="CaptionComments"/);
+        if (captionMatch) {
+          // Strip HTML tags, keep text
+          const captionText = captionMatch[1]
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<a[^>]*>([^<]*)<\/a>/gi, '$1')
+            .replace(/<[^>]+>/g, '')
+            .trim();
+          if (captionText) extractedText += captionText + '\n\n';
+        }
+
+        // Also grab username
+        const userMatch = embedHtml.match(/class="CaptionUsername"[^>]*>([^<]+)</);
+        if (userMatch) extractedText += `By: ${userMatch[1].trim()}\n\n`;
+      } catch (e) {
+        console.warn('Embed fetch failed:', e.message);
+      }
+    }
+
+    // Method 2: Fallback — fetch the main page for meta tags
+    if (!extractedText.trim()) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(8000),
+        });
+        const html = await response.text();
+
+        const patterns = [
+          /<meta\s+property="og:description"\s+content="([^"]*?)"/i,
+          /<meta\s+name="description"\s+content="([^"]*?)"/i,
+          /<meta\s+property="og:title"\s+content="([^"]*?)"/i,
+        ];
+        for (const pattern of patterns) {
+          const match = html.match(pattern);
+          if (match?.[1] && match[1].length > 10) {
+            extractedText += match[1] + '\n\n';
+          }
+        }
+      } catch (e) {
+        console.warn('HTML fetch failed:', e.message);
+      }
+    }
+
+    // Decode HTML entities and escape sequences
+    extractedText = extractedText
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#x27;/g, "'")
+      .replace(/\\n/g, '\n').replace(/\\u0040/g, '@').replace(/\\u[\da-fA-F]{4}/g, (m) => {
+        try { return JSON.parse(`"${m}"`); } catch { return m; }
+      });
+
+    console.log(`Instagram extract: URL=${url}, text length=${extractedText.trim().length}`);
 
     if (!extractedText.trim()) {
       return res.json({
         activities: [],
         extractedText: '',
-        message: 'Could not extract content from this URL. Try pasting the caption text directly.',
+        message: 'Could not extract content from this URL. Instagram may be blocking access. Try pasting the caption text directly.',
       });
     }
 

@@ -1,31 +1,32 @@
 import { useState } from 'react';
 import PlaceAutocomplete from '../ui/PlaceAutocomplete';
 import ScrollDatePicker from '../ui/ScrollDatePicker';
+import { WalkIcon, TrainIcon, TaxiIcon, CarIcon, PlaneIcon, BusIcon, FerryIcon } from '../ui/Icons';
 
 const INTERESTS = [
-  { label: 'Food & Drink', icon: '🍽️' },
-  { label: 'Museums', icon: '🏛️' },
-  { label: 'Nature', icon: '🌿' },
-  { label: 'Nightlife', icon: '🌙' },
-  { label: 'Shopping', icon: '🛍️' },
-  { label: 'Architecture', icon: '🏗️' },
-  { label: 'Family-friendly', icon: '👨‍👩‍👧' },
-  { label: 'Hidden Gems', icon: '💎' },
+  { label: 'Food & Drink', icon: 'food' },
+  { label: 'Museums', icon: 'museum' },
+  { label: 'Nature', icon: 'nature' },
+  { label: 'Nightlife', icon: 'night' },
+  { label: 'Shopping', icon: 'shop' },
+  { label: 'Architecture', icon: 'arch' },
+  { label: 'Family-friendly', icon: 'family' },
+  { label: 'Hidden Gems', icon: 'gem' },
 ];
 
 const LOCAL_TRANSPORT = [
-  { label: 'Walk', icon: '🚶' },
-  { label: 'Subway / Transit', icon: '🚇' },
-  { label: 'Taxi / Rideshare', icon: '🚕' },
-  { label: 'Rental Car', icon: '🚗' },
+  { label: 'Walk', Icon: WalkIcon },
+  { label: 'Subway / Transit', Icon: TrainIcon },
+  { label: 'Taxi / Rideshare', Icon: TaxiIcon },
+  { label: 'Rental Car', Icon: CarIcon },
 ];
 
 const INTERCITY_TRANSPORT = [
-  { label: 'Flight', icon: '✈️' },
-  { label: 'Train', icon: '🚄' },
-  { label: 'Bus', icon: '🚌' },
-  { label: 'Car', icon: '🚗' },
-  { label: 'Ferry', icon: '⛴️' },
+  { label: 'Flight', Icon: PlaneIcon },
+  { label: 'Train', Icon: TrainIcon },
+  { label: 'Bus', Icon: BusIcon },
+  { label: 'Car', Icon: CarIcon },
+  { label: 'Ferry', Icon: FerryIcon },
 ];
 
 const WIZARD_STEPS = ['cities', 'dates', 'transport', 'interests', 'budget'];
@@ -351,7 +352,7 @@ export default function TripForm({ onSubmit, initialValues, submitLabel }) {
                             : 'border-gray-100 bg-white text-gray-600 hover:border-gray-300'
                         }`}
                       >
-                        <span className="text-lg">{t.icon}</span>
+                        <t.Icon className="text-lg" />
                         {t.label}
                       </button>
                     ))}
@@ -435,7 +436,7 @@ export default function TripForm({ onSubmit, initialValues, submitLabel }) {
                     : 'border-gray-100 bg-white text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <span className="text-lg">{t.icon}</span>
+                <t.Icon className="text-lg" />
                 {t.label}
               </button>
             ))}
@@ -492,9 +493,9 @@ export default function TripForm({ onSubmit, initialValues, submitLabel }) {
   // ─── Step: Budget + Group ───
   if (currentStep === 'budget') {
     const budgetOptions = [
-      { value: 'budget', label: 'Budget', desc: 'Hostels, street food, free activities', icon: '🎒' },
-      { value: 'mid-range', label: 'Mid-range', desc: 'Hotels, restaurants, popular spots', icon: '🏨' },
-      { value: 'luxury', label: 'Luxury', desc: 'Premium stays, fine dining, VIP access', icon: '✨' },
+      { value: 'budget', label: 'Budget', desc: 'Hostels, street food, free activities', icon: '$' },
+      { value: 'mid-range', label: 'Mid-range', desc: 'Hotels, restaurants, popular spots', icon: '$$' },
+      { value: 'luxury', label: 'Luxury', desc: 'Premium stays, fine dining, VIP access', icon: '$$$' },
     ];
 
     return (

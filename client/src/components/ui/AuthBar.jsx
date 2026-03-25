@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { HomeIcon, ChevronDownIcon } from './Icons';
 
 const EMAIL_DOMAIN = '@trip.io';
 const RECENT_USERS_KEY = 'trip_recent_users';
@@ -69,7 +70,7 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
             className="text-gray-400 hover:text-gray-600 transition-colors"
             title="Home"
           >
-            🏠
+            <HomeIcon />
           </button>
         )}
         <div className="relative user-menu-container">
@@ -81,7 +82,7 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
               {displayName(user.email)[0]?.toUpperCase() || '?'}
             </div>
             <span className="text-gray-700 font-medium truncate max-w-[100px]">{displayName(user.email)}</span>
-            <span className="text-gray-300 text-xs">▼</span>
+            <ChevronDownIcon className="text-gray-300 text-xs" />
           </button>
 
           {showUserMenu && (
@@ -169,7 +170,7 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
           className="text-gray-400 hover:text-gray-600 transition-colors mr-1"
           title="Home"
         >
-          🏠
+          <HomeIcon />
         </button>
       )}
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
