@@ -29,7 +29,7 @@ function addRecentUser(email) {
   localStorage.setItem(RECENT_USERS_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
 }
 
-export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }) {
+export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut, onSave, saving, isDirty }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState('');
@@ -38,6 +38,7 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileForm, setShowMobileForm] = useState(false);
   const [switchingTo, setSwitchingTo] = useState(null);
 
   // Track successful logins
@@ -47,13 +48,16 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
 
   // Close menu on outside click
   useEffect(() => {
-    if (!showUserMenu) return;
+    if (!showUserMenu && !showMobileForm) return;
     const close = (e) => {
-      if (!e.target.closest('.user-menu-container')) setShowUserMenu(false);
+      if (!e.target.closest('.user-menu-container') && !e.target.closest('.auth-mobile-container')) {
+        setShowUserMenu(false);
+        setShowMobileForm(false);
+      }
     };
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
-  }, [showUserMenu]);
+  }, [showUserMenu, showMobileForm]);
 
   if (loading) return null;
 
@@ -129,6 +133,23 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
                 </div>
               )}
 
+              {/* Save action (only when a trip is open and editable) */}
+              {onSave && (
+                <>
+                  <div className="border-b border-gray-100" />
+                  <button
+                    onClick={() => { onSave(); setShowUserMenu(false); }}
+                    disabled={saving || !isDirty}
+                    className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-blue-50 transition-colors disabled:opacity-40"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isDirty ? 'bg-amber-400' : 'bg-green-400'}`} />
+                    <span className={isDirty ? 'text-[#007AFF] font-medium' : 'text-gray-400'}>
+                      {saving ? 'Saving…' : isDirty ? 'Save now' : 'All saved'}
+                    </span>
+                  </button>
+                </>
+              )}
+
               {/* Sign out */}
               <button
                 onClick={() => { onSignOut(); setShowUserMenu(false); }}
@@ -173,7 +194,9 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
           <HomeIcon />
         </button>
       )}
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+
+      {/* Desktop: inline form */}
+      <form onSubmit={handleSubmit} className="hidden sm:flex items-center gap-2">
         <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="username"
           className="px-2 py-1 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] w-28" />
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password"
@@ -188,6 +211,36 @@ export default function AuthBar({ user, loading, onSignIn, onSignUp, onSignOut }
         </button>
         {error && <span className="text-xs text-red-500 max-w-[150px] truncate">{error}</span>}
       </form>
+
+      {/* Mobile: compact button + dropdown */}
+      <div className="sm:hidden relative auth-mobile-container">
+        <button
+          onClick={() => setShowMobileForm((v) => !v)}
+          className="px-3 py-1.5 bg-[#007AFF] text-white text-sm font-semibold rounded-xl"
+        >
+          {isSignUp ? 'Sign up' : 'Sign in'}
+        </button>
+        {showMobileForm && (
+          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-200 p-4 z-50">
+            <p className="text-sm font-semibold text-gray-900 mb-3">{isSignUp ? 'Create account' : 'Welcome back'}</p>
+            <form onSubmit={handleSubmit} className="space-y-2.5">
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" autoFocus
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]" />
+              <button type="submit" disabled={submitting || !username || !password}
+                className="w-full py-2.5 bg-[#007AFF] text-white font-semibold rounded-xl text-sm hover:opacity-90 disabled:opacity-40 transition-opacity">
+                {submitting ? '…' : isSignUp ? 'Sign up' : 'Sign in'}
+              </button>
+              {error && <p className="text-xs text-red-500">{error}</p>}
+            </form>
+            <button type="button" onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+              className="w-full mt-2 text-xs text-center text-gray-400 hover:text-gray-600 transition-colors py-1">
+              {isSignUp ? 'Have an account? Sign in' : "Don't have an account? Sign up"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

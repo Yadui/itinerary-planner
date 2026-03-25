@@ -3,6 +3,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -44,7 +45,8 @@ export default function ItineraryView({ itinerary: initialItinerary, activities,
   }, [initialItinerary, travelMatrix]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
   if (!itinerary?.days?.length) {

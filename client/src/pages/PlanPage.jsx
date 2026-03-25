@@ -235,7 +235,7 @@ export default function PlanPage() {
                 {step === STEPS.ACTIVITIES ? 'Pick Activities' : 'Your Itinerary'}
               </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {step === STEPS.ITINERARY && (
                 <>
                   {tripId && (
@@ -245,12 +245,12 @@ export default function PlanPage() {
                         setLinkCopied(true);
                         setTimeout(() => setLinkCopied(false), 2000);
                       }}
-                      className={`text-xs font-medium transition-colors ${linkCopied ? 'text-green-600' : 'text-[#007AFF] hover:opacity-70'}`}
+                      className={`hidden sm:block text-xs font-medium transition-colors ${linkCopied ? 'text-green-600' : 'text-[#007AFF] hover:opacity-70'}`}
                     >
                       {linkCopied ? <><CheckIcon className="inline" /> Link copied</> : 'Copy link'}
                     </button>
                   )}
-                  {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Unsaved changes" />}
+                  {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" title="Unsaved changes" />}
                   <button
                     onClick={handleSave}
                     disabled={saving || !auth.isAuthenticated}
@@ -260,10 +260,10 @@ export default function PlanPage() {
                   </button>
                 </>
               )}
-              <button onClick={startOver} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              <button onClick={startOver} className="hidden sm:block text-xs text-gray-400 hover:text-red-500 transition-colors">
                 Start over
               </button>
-              <HealthIndicator />
+              <span className="hidden sm:block"><HealthIndicator /></span>
               <AuthBar
                 user={auth.user}
                 loading={auth.loading}
@@ -282,7 +282,7 @@ export default function PlanPage() {
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-medium text-gray-900">Trip Planner</span>
             <div className="flex items-center gap-3">
-              <HealthIndicator />
+              <span className="hidden sm:block"><HealthIndicator /></span>
               <AuthBar
                 user={auth.user}
                 loading={auth.loading}
@@ -295,7 +295,7 @@ export default function PlanPage() {
         </header>
       )}
 
-      <main className={`mx-auto px-4 pb-24 ${step === STEPS.ACTIVITIES ? 'max-w-6xl' : 'max-w-3xl'}`}>
+      <main className={`mx-auto px-4 pb-28 sm:pb-24 ${step === STEPS.ACTIVITIES ? 'max-w-6xl' : 'max-w-3xl'}`}>
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
         )}
@@ -415,7 +415,7 @@ export default function PlanPage() {
       </main>
 
       {/* Floating bottom step tabs */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30">
+      <div className="fixed left-1/2 -translate-x-1/2 z-30 bottom-tab-bar">
         <div className="flex items-center bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200/60 p-1.5 gap-1">
           {[
             { key: STEPS.FORM, label: 'Trip Details', Icon: ListIcon, num: 1 },

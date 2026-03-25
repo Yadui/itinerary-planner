@@ -17,13 +17,13 @@ export default function DraggableItem({ item, index, dayIndex, totalDays, onRemo
   const hasWarning = item.warnings?.length > 0;
 
   return (
-    <div ref={setNodeRef} style={style} className={`px-5 py-3 flex items-start gap-3 ${hasError ? 'bg-red-50/50' : ''}`}>
-      {/* Drag handle */}
+    <div ref={setNodeRef} style={style} className={`px-4 py-3 flex items-start gap-3 ${hasError ? 'bg-red-50/50' : ''}`}>
+      {/* Drag handle — oversized touch target */}
       {!readOnly && (
         <div
           {...attributes}
           {...listeners}
-          className="mt-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 flex-shrink-0 select-none"
+          className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 flex-shrink-0 select-none touch-none p-2 -m-2"
         >
           ⠿
         </div>
@@ -57,14 +57,14 @@ export default function DraggableItem({ item, index, dayIndex, totalDays, onRemo
 
       {/* Actions */}
       {!readOnly && (
-        <div className="flex flex-col gap-1 flex-shrink-0">
+        <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
           {item.rating && (
             <span className="text-xs text-amber-500">★ {item.rating}</span>
           )}
           {/* Move to another day */}
           {totalDays > 1 && (
             <select
-              className="text-xs text-gray-400 bg-transparent border-none cursor-pointer focus:outline-none"
+              className="text-xs text-gray-400 bg-transparent border-none cursor-pointer focus:outline-none py-0.5"
               value=""
               onChange={(e) => {
                 const targetDay = Number(e.target.value);
@@ -82,7 +82,7 @@ export default function DraggableItem({ item, index, dayIndex, totalDays, onRemo
           )}
           <button
             onClick={() => onRemove(dayIndex, index)}
-            className="text-xs text-red-400 hover:text-red-600 text-left"
+            className="text-xs text-red-400 hover:text-red-600 text-left py-0.5 px-0"
           >
             Remove
           </button>

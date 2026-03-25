@@ -58,7 +58,8 @@ function haversine(a, b) {
 // ─── Day recalculation ───
 
 const DAY_START = '09:00';
-const DAY_END = '21:00';
+const DAY_END = '21:30';
+const BUFFER_MIN = 10; // minimum cushion between activities (travel + this buffer)
 
 /**
  * Given a day's items (in order), recomputes start_time and end_time
@@ -72,11 +73,11 @@ export function recalculateDay(day, travelMatrix) {
   for (let i = 0; i < day.items.length; i++) {
     const item = day.items[i];
 
-    // Add travel time from previous activity
+    // Add travel time + buffer from previous activity
     if (i > 0) {
       const prev = day.items[i - 1];
       const travel = travelMatrix.get(prev.place_id, item.place_id);
-      currentTime = addMinutes(currentTime, travel);
+      currentTime = addMinutes(currentTime, travel + BUFFER_MIN);
     }
 
     item.start_time = currentTime;
@@ -115,24 +116,22 @@ export function validateDay(day, travelMatrix) {
       item.warnings.push(`Ends at ${item.end_time}, after ${DAY_END}`);
     }
 
-    // Overlap with previous
-    if (i > 0) {
-      const prev = day.items[i - 1];
-      const prevEndMin = timeToMinutes(prev.end_time);
+      // Travel feasibility — only flag when there is genuinely not enough time to travel
+      if (i > 0) {
+        const prev = day.items[i - 1];
+        const prevEndMin = timeToMinutes(prev.end_time);
 
-      if (startMin < prevEndMin) {
-        item.errors.push(`Overlaps with "${prev.name}" (ends ${prev.end_time})`);
-      }
+        if (startMin < prevEndMin) {
+          item.errors.push(`Overlaps with "${prev.name}" (ends ${prev.end_time})`);
+        }
 
-      // Travel feasibility
-      const travel = travelMatrix.get(prev.place_id, item.place_id);
-      const gap = startMin - prevEndMin;
-      if (gap >= 0 && gap < travel) {
-        item.errors.push(`${gap}min gap but ${travel}min travel from "${prev.name}"`);
-      } else if (gap >= travel && gap < travel + 5) {
-        item.warnings.push(`Only ${gap - travel}min buffer after travel from "${prev.name}"`);
+        const travel = travelMatrix.get(prev.place_id, item.place_id);
+        const gap = startMin - prevEndMin;
+        if (gap >= 0 && gap < travel) {
+          item.errors.push(`${gap}min gap but ${travel}min travel from "${prev.name}"`);
+        }
+        // (No tight-buffer warning — BUFFER_MIN is already baked into the recalculation)
       }
-    }
   }
 
   // Day-level: too many activities

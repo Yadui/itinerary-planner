@@ -87,6 +87,7 @@ export function useTrip(tripId, accessToken) {
   const undoStack = useRef([]); // { itinerary, activities } snapshots
   const pendingOps = useRef([]); // operation log since last save
   const isDirtyRef = useRef(false);
+  const saveTripRef = useRef(null); // always-current saveTrip ref (avoids stale closure in timer)
 
   // ─── Load ───
   const loadTrip = useCallback(async () => {
@@ -177,9 +178,9 @@ export function useTrip(tripId, accessToken) {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       if (tripId && accessToken) {
-        saveTrip();
+        saveTripRef.current?.();
       }
-    }, 3000);
+    }, 5000); // 5-second debounce
   }, [tripId, accessToken]);
 
   // ─── Update itinerary (with undo + op tracking) ───
@@ -310,6 +311,9 @@ export function useTrip(tripId, accessToken) {
       setSaving(false);
     }
   }, [tripId, accessToken, trip, activities, itinerary, saving, loadTrip]);
+
+  // Keep saveTripRef current so markDirty's debounced timer always calls the latest saveTrip
+  useEffect(() => { saveTripRef.current = saveTrip; }, [saveTrip]);
 
   // ─── Create ───
   const createTrip = useCallback(async (tripData) => {

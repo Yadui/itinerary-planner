@@ -350,7 +350,7 @@ router.post('/:id/share', requireAuth, async (req, res) => {
 
   const shareRole = role === 'viewer' ? 'viewer' : 'editor';
   const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const { error } = await sb
     .from('trips')

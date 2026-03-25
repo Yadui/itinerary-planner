@@ -96,7 +96,6 @@ export default function TripPage() {
   const [activeTab, setActiveTab] = useState(TABS.DETAILS);
   const [showShare, setShowShare] = useState(false);
   const [showDirections, setShowDirections] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState(null);
 
@@ -192,12 +191,6 @@ export default function TripPage() {
     updateItinerary(newItinerary);
   }, [updateItinerary]);
 
-  function copyLink() {
-    navigator.clipboard.writeText(`${window.location.origin}/trip/${id}`);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
-  }
-
   // Loading/auth states
   if (auth.loading || (auth.isAuthenticated && loading)) return (
     <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
@@ -250,7 +243,7 @@ export default function TripPage() {
   const otherUsers = [...activeUsers.values()];
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] pb-20">
+    <div className="min-h-screen bg-[#f5f5f7] pb-24 sm:pb-20">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -290,46 +283,30 @@ export default function TripPage() {
             {canUndo && canEdit && (
               <button
                 onClick={undo}
-                className="px-2.5 py-1.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-100"
+                className="hidden sm:block px-2.5 py-1.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-100"
                 title="Undo last change"
               >
                 Undo
               </button>
             )}
-            <button
-              onClick={copyLink}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                linkCopied
-                  ? 'bg-green-50 text-green-600 border border-green-200'
-                  : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
-              }`}
-            >
-              {linkCopied ? <><CheckIcon className="inline" /> Copied</> : 'Copy link'}
-            </button>
-            {canEdit && (
+            {isOwner && (
               <button
                 onClick={() => setShowShare(true)}
-                className="px-3 py-1.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-100"
+                className="px-3 py-1.5 bg-[#007AFF] text-white font-semibold rounded-lg text-xs hover:opacity-90"
               >
-                Share
+                Invite
               </button>
             )}
-            {canEdit && (
-              <button
-                onClick={() => saveTrip()}
-                disabled={saving || !isDirty}
-                className="px-3 py-1.5 bg-[#007AFF] text-white font-semibold rounded-lg text-xs hover:opacity-90 disabled:opacity-40"
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            )}
-            <HealthIndicator />
+            <span className="hidden sm:block"><HealthIndicator /></span>
             <AuthBar
               user={auth.user}
               loading={auth.loading}
               onSignIn={auth.signIn}
               onSignUp={auth.signUp}
               onSignOut={auth.signOut}
+              onSave={canEdit ? saveTrip : undefined}
+              saving={saving}
+              isDirty={isDirty}
             />
           </div>
         </div>
@@ -411,7 +388,7 @@ export default function TripPage() {
       </main>
 
       {/* Floating bottom tabs */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
+      <div className="fixed left-1/2 -translate-x-1/2 z-20 bottom-tab-bar">
         <div className="flex bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
           <button
             onClick={() => setActiveTab(TABS.DETAILS)}

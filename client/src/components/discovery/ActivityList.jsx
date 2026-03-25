@@ -157,7 +157,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
     return [...pinned, ...rest];
   }, [places, categoryFilter, ratingFilter, priceFilter, cityFilter, showSelected, showInstagram, selectedIds, searchQuery, pinnedIds]);
 
-  const cityNames = tripConfig.cities.map((c) => c.name);
+  const cityNames = [...new Set(tripConfig.cities.map((c) => c.name))];
 
   async function handleCustomSearch(e) {
     e.preventDefault();
@@ -309,17 +309,17 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Pick your activities</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Pick activities</h2>
           <p className="text-sm text-gray-400 mt-0.5">{selectedActivities.length} selected</p>
         </div>
         <button
           onClick={onGenerate}
           disabled={!selectedActivities.length || loading}
-          className="px-5 py-2.5 bg-[#007AFF] text-white font-semibold rounded-xl text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
+          className="flex-shrink-0 px-4 py-2.5 bg-[#007AFF] text-white font-semibold rounded-xl text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
         >
-          {loading ? 'Generating…' : 'Generate Itinerary →'}
+          {loading ? 'Generating…' : 'Generate →'}
         </button>
       </div>
 
@@ -332,8 +332,8 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
             setCustomSearch(e.target.value);
             if (!e.target.value) setSearchQuery('');
           }}
-          placeholder="Search for places, restaurants, activities..."
-          className="flex-1 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
+          placeholder="Search for places, restaurants..."
+          className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
         />
         <button
           type="submit"
@@ -484,13 +484,13 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-        {/* Category pills */}
-        <div className="flex flex-wrap gap-2">
+        {/* Category pills — horizontal scroll on mobile */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 -mx-1 px-1">
           {CATEGORY_FILTERS.map((f) => (
             <button
               key={f.key}
               onClick={() => setCategoryFilter(f.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 categoryFilter === f.key
                   ? 'bg-[#007AFF] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -501,13 +501,13 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 -mx-1 px-1 items-center">
           {/* City filter (multi-city only) */}
           {cityNames.length > 1 && (
             <select
               value={cityFilter}
               onChange={(e) => setCityFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+              className="flex-shrink-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
             >
               <option value="all">All cities</option>
               {cityNames.map((c) => (
@@ -520,7 +520,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           <select
             value={ratingFilter}
             onChange={(e) => setRatingFilter(Number(e.target.value))}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
           >
             {RATING_FILTERS.map((f) => (
               <option key={f.key} value={f.key}>{f.label}</option>
@@ -531,7 +531,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           <select
             value={priceFilter}
             onChange={(e) => setPriceFilter(Number(e.target.value))}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
           >
             {PRICE_FILTERS.map((f) => (
               <option key={f.key} value={f.key}>{f.label}</option>
@@ -541,7 +541,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           {/* Show selected toggle */}
           <button
             onClick={() => setShowSelected(!showSelected)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               showSelected
                 ? 'bg-[#007AFF] text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -554,7 +554,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           {places.some((p) => p.source === 'instagram') && (
             <button
               onClick={() => setShowInstagram(!showInstagram)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 showInstagram
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -565,7 +565,7 @@ export default function ActivityList({ tripConfig, selectedActivities, onToggle,
           )}
 
           {/* Result count */}
-          <span className="text-xs text-gray-400 ml-auto">{filtered.length} results</span>
+          <span className="flex-shrink-0 text-xs text-gray-400 ml-auto pl-2">{filtered.length} results</span>
         </div>
       </div>
 
